@@ -1,9 +1,7 @@
 const path = require("path");
 const fs = require("fs").promises;
-// const { promises: fsPromises } = fs;
 
 const contactsPath = path.join(__dirname, "../db/contacts.json");
-const defaultContactsPath = path.join(__dirname, "../db/defaultContacts.json");
 
 async function listContacts() {
   try {
@@ -60,7 +58,7 @@ async function removeContact(contactId) {
 }
 
 async function addContact(obj) {
-  const contactsData = JSON.parse(await fs.readFileSync(contactsPath, "utf8"));
+  const contactsData = JSON.parse(await fs.readFile(contactsPath, "utf8"));
   const id = Math.max(...contactsData.map((el) => el.id)) + 1;
   contactsData.push({ id, ...obj });
 
