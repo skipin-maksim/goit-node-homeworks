@@ -1,11 +1,8 @@
 const Joi = require("joi");
 require("dotenv").config();
 const { MongoClient, ObjectID } = require("mongodb");
-
-// const uriDb =
-//   "mongodb+srv://skipmaks:955742955742@hwnode.sro7m.mongodb.net/test";
-const uriDb =
-  "mongodb+srv://user:123@cluster0.jkmtu.mongodb.net/test?retryWrites=true&w=majority";
+require("dotenv").config();
+const uriDb = process.env.URI_DB;
 class ContactController {
   async getContacts(req, res, next) {
     const client = await new MongoClient(uriDb, {
@@ -13,7 +10,11 @@ class ContactController {
     }).connect();
 
     try {
-      const results = await client.db().collection("contacts").find().toArray();
+      const results = await client
+        .db("contacts")
+        .collection("contacts")
+        .find()
+        .toArray();
 
       res.json({
         status: "success",
@@ -39,8 +40,8 @@ class ContactController {
 
     try {
       const results = await client
-        .db()
-        .collection("users")
+        .db("contacts")
+        .collection("contacts")
         .find({ _id: objectId })
         .toArray();
 
@@ -69,7 +70,10 @@ class ContactController {
     try {
       const {
         ops: [result],
-      } = await client.db().collection("users").insertOne(req.body);
+      } = await client
+        .db("contacts")
+        .collection("contacts")
+        .insertOne(req.body);
 
       res.json({
         status: "success",
@@ -97,8 +101,8 @@ class ContactController {
     try {
       const objectId = new ObjectID(id);
       const { value: result } = await client
-        .db()
-        .collection("users")
+        .db("contacts")
+        .collection("contacts")
         .findOneAndUpdate(
           { _id: objectId },
           { $set: { name, email, phone } },
@@ -128,8 +132,8 @@ class ContactController {
     try {
       const objectId = new ObjectID(id);
       const { value: result } = await client
-        .db()
-        .collection("users")
+        .db("contacts")
+        .collection("contacts")
         .findOneAndDelete({ _id: objectId });
       res.json({
         status: "success",
