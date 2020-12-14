@@ -18,6 +18,7 @@ module.exports = class Server {
     this.initErrorHendler();
     this.startListering();
   }
+
   initServer() {
     this.server = express();
   }
@@ -27,10 +28,13 @@ module.exports = class Server {
     this.server.use(cors());
     this.server.use(logger("dev"));
   }
+
   initRoutes() {
     this.server.use("/contacts", contactsRoutes);
   }
+
   initErrorHendler() {}
+
   startListering() {
     this.server.listen(PORT, () =>
       console.log("Server was started on port ->", PORT)

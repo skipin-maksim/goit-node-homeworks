@@ -1,88 +1,164 @@
 const Joi = require("joi");
+require("dotenv").config();
+const { MongoClient, ObjectID } = require("mongodb");
 
-const {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-  editContact,
-} = require("../contasts/contactsFunctions");
-
+// const uriDb =
+//   "mongodb+srv://skipmaks:955742955742@hwnode.sro7m.mongodb.net/test";
+const uriDb =
+  "mongodb+srv://user:123@cluster0.jkmtu.mongodb.net/test?retryWrites=true&w=majority";
 class ContactController {
   async getContacts(req, res, next) {
+    const client = await new MongoClient(uriDb, {
+      useUnifiedTopology: true,
+    }).connect();
+
     try {
-      const result = await listContacts();
-      res.status(200).send(result);
-    } catch (error) {
-      next(error);
+      const results = await client.db().collection("contacts").find().toArray();
+
+      res.json({
+        status: "success",
+        code: 200,
+        data: {
+          contacts: results,
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      next(e);
+    } finally {
+      await client.close();
     }
   }
 
   async getSingleContact(req, res, next) {
-    const id = parseInt(req.params.id);
+    const client = await new MongoClient(uriDb, {
+      useUnifiedTopology: true,
+    }).connect();
+
+    const objectId = new ObjectID(req.params.id);
+
     try {
-      const result = await getContactById(id);
-      if (result) {
-        res.status(200).send(result);
-      } else {
-        res.status(404).send({ message: "Not found" });
-      }
-    } catch (error) {
-      next(error);
+      const results = await client
+        .db()
+        .collection("users")
+        .find({ _id: objectId })
+        .toArray();
+
+      res.json({
+        status: "success",
+        code: 200,
+        data: {
+          contacts: results,
+        },
+      });
+
+      console.log("found contact --->", result, "<---");
+    } catch (e) {
+      console.error(e);
+      next(e);
+    } finally {
+      await client.close();
     }
   }
 
   async createContact(req, res, next) {
-    try {
-      const result = await addContact(req.body);
-      res.status(201).send(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-  async deleteContact(req, res, next) {
-    const id = parseInt(req.params.id);
+    const client = await new MongoClient(uriDb, {
+      useUnifiedTopology: true,
+    }).connect();
 
     try {
-      const result = await removeContact(id);
-      if (result === "ok") {
-        res.status(200).send({ message: "contact deleted" });
-      } else {
-        res.status(404).send({ message: "Not found" });
-      }
-    } catch (error) {
-      next(error);
+      const {
+        ops: [result],
+      } = await client.db().collection("users").insertOne(req.body);
+
+      res.json({
+        status: "success",
+        code: 201,
+        data: {
+          contact: result,
+        },
+      });
+
+      console.log("new contact --->", result, "<---");
+    } catch (e) {
+      console.error(e);
+      next(e);
+    } finally {
+      await client.close();
     }
   }
 
   async updateContact(req, res, next) {
-    const id = parseInt(req.params.id);
+    const { id } = req.params;
     const { name, email, phone } = req.body;
+    const client = await new MongoClient(uriDb, {
+      useUnifiedTopology: true,
+    }).connect();
     try {
-      if (name || email || phone) {
-        const result = await editContact(id, req.body);
-        result
-          ? res.status(200).send(result)
-          : res.status(404).send({ message: "Not found" });
-      } else {
-        res.status(400).send({ message: "missing fields" });
-      }
-    } catch (error) {
-      next(error);
+      const objectId = new ObjectID(id);
+      const { value: result } = await client
+        .db()
+        .collection("users")
+        .findOneAndUpdate(
+          { _id: objectId },
+          { $set: { name, email, phone } },
+          { returnOriginal: false }
+        );
+
+      res.json({
+        status: "success",
+        code: 200,
+        data: { contact: result },
+      });
+
+      console.log("update contact --->", result, "<---");
+    } catch (e) {
+      console.error(e);
+      next(e);
+    } finally {
+      await client.close();
+    }
+  }
+
+  async deleteContact(req, res, next) {
+    const { id } = req.params;
+    const client = await new MongoClient(uriDb, {
+      useUnifiedTopology: true,
+    }).connect();
+    try {
+      const objectId = new ObjectID(id);
+      const { value: result } = await client
+        .db()
+        .collection("users")
+        .findOneAndDelete({ _id: objectId });
+      res.json({
+        status: "success",
+        code: 200,
+        data: { contact: result },
+      });
+
+      console.log("delete contact --->", result, "<---");
+    } catch (e) {
+      console.error(e);
+      next(e);
+    } finally {
+      await client.close();
     }
   }
 
   validateCreateContact(req, res, next) {
     const valShema = Joi.object({
       name: Joi.string().required(),
-      email: Joi.string(),
-      phone: Joi.string(),
+      email: Joi.string().required(),
+      phone: Joi.string().required(),
     });
 
     const { error } = valShema.validate(req.body);
 
     if (error) {
-      return res.status(400).send({ message: "missing required name field" });
+      return res
+        .status(400)
+        .send({ message: "missing required name, email or phone field" });
     }
     next();
   }
